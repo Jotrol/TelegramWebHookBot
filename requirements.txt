@@ -1,0 +1,3 @@
+aiohttp
+aiogram
+aiohttp_jinja2

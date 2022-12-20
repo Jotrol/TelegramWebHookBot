@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+    </head>
+
+    <script>      
+        function startAdding(event)
+        {
+            document.getElementById("product-adding-button").style = "display: none";   // hide the add button
+            document.getElementById("products-table").style = "display: none;"; // hide the table with products
+
+            const frame = document.getElementById("product-frame");   // get the frame to perfom different actions
+                frame.querySelector('[id="subproduct-list-place"]').appendChild(createNewEmptyAddingTable()); // creating new empty input table, return the Node and append it to div for table
+                frame.querySelector('[id="product-form"]').action = "/admin/actions/add_product";   // set the action of form; addition to database, in this case
+                frame.querySelector('[id="message-info"]').innerHTML = "<b>Добавление продукта</b>";    // set the message text to makke the user to know, what is he doing
+                frame.querySelector('[id="product-id"]').style = "display: none;";  // hide the product id field; it's not useful at all while adding product
+
+                frame.querySelector('[name="product-title"]').required = true;  // set the title to be required field
+                frame.querySelector('[name="product-description"]').required = true; // set the description to be required field
+
+                frame.style = "display: block"; // finally, make addition form visible
+        }
+        function startEditing(event, raw_subproducts)
+        {
+            document.getElementById("product-adding-button").style = "display: none";   // first - hide the addition button
+            document.getElementById("products-table").style = "display: none;"; // second - hide the table with products
+
+            const subproducts = JSON.parse(raw_subproducts);  // parsing the particular json subproducts
+
+            const row = event.target.parentNode.parentNode;   // get the row of this button
+                const id = row.querySelector('[id="product-id"]').innerText;  // get the text of id field
+                const title = row.querySelector('[id="product-title"]').innerText; // get the text of title field
+                const description = row.querySelector('[id="product-description"]').innerText; // get the text of description field
+                const img_src = row.querySelector('[id="product-photo"]').src; // get the source of image
+
+            const frame = document.getElementById("product-frame");   // get the frame of form
+                frame.querySelector('[id="product-id"]').style = "display: block;"; // show the id field; can't delete it at all, becuase we need to know which product to edit; user can't edit it
+
+                frame.querySelector('[id="message-info"]').innerHTML = "<b>Редактирование продукта</b>"; // set the message field for user to know, what is he doing
+
+                frame.querySelector('[name="product-id"]').value = id;  // set the id field; can't be editted
+                frame.querySelector('[name="product-title"').value = title; // set the title value
+                frame.querySelector('[name="product-description"').value = description; // set the description field
+                frame.querySelector('[id="product-image"]').src = img_src;  // set img src of origin photo
+                frame.querySelector('[id="subproduct-list-place"]').appendChild(createNewFilledTable(subproducts)); // appending child with a new table, that creating with filling the input fields by subproduct info
+
+                frame.querySelector('[name="product-title"]').required = false;  // reset requireness of title field
+                frame.querySelector('[name="product-description"]').required = false; // reset requireness of description field
+
+                frame.querySelector('[id="product-form"]').action = "/admin/actions/edit_product";  // set the form action to perfom editing
+
+                frame.style = "display: block"; // set the form frame visible
+        }
+        function sendDelete(event)
+        {
+            const table = event.target.parentNode.parentNode; // getting the table Node from where we pressed Delete
+            const id = parseInt(table.querySelector('[id="product-id"]').innerText);
+
+            const form = document.createElement('form');
+                form.action = "/admin/actions/delete_product";
+                form.method = "POST";
+
+                form.innerHTML = `<input name="product-id" value="${id}" type="number" />`;
+
+            document.body.append(form);
+            form.submit();
+            form.remove();
+        }
+        
+        function createNewEmptyTable() // creates and returns the new empty table with add button and header
+        {
+            const table_title = document.createElement("p"); // create a p tag
+                table_title.innerText = "Что покупает пользователь и по какой цене?"; // set the text of p tag
+
+            const table_head_name = document.createElement("th");   // create the header tag
+                table_head_name.innerText = "Название"; // set the text of header
+
+            const table_head_price = document.createElement("th");
+                table_head_price.innerText = "Цена";
+            
+            const table_head = document.createElement("tr");    // create the row tag
+                table_head.appendChild(table_head_name);    // add the header of name
+                table_head.appendChild(table_head_price);   // add the header of price
+
+            const button_tr = document.createElement("tr");
+                button_tr.appendChild(tdCreateAddButton());
+
+            const table = document.createElement("table");  // create new table
+                table.id = "subproducts-list";  // set the table id to this because of global using it
+
+                table.appendChild(table_title); // append the table title text to table
+                table.appendChild(button_tr); // append the button add to table with it's own row
+                table.appendChild(table_head);  // append the table header row to table
+            return table;
+        }
+        function createNewEmptyAddingTable() // craetes the adding table, where first field of label and price for subproduct MUST be inputted
+        {
+            const label_input = document.createElement("input");    // create the input for label
+                label_input.type = "text";  // type will be text
+                label_input.name = "subproduct-label"; // name it as it must be named
+                label_input.required = true; // setting this input to be required, because one subproduct in product ALWAYS MUST be; w/o label it can't exist
+
+            const price_input = document.createElement("input");    // create the input for price
+                price_input.type = "number";    // type will be number - because price
+                price_input.name = "subproduct-price"; // name it as it must be named
+                price_input.required = true; // setting this input to be required, because one subproduct in product ALWAYS MUST be; w/o price it can't exist
+
+            const label_td = document.createElement("td");  // td for label
+                label_td.appendChild(label_input); // adding the only child - label
+            
+            const price_td = document.createElement("td"); // td for price
+                price_td.appendChild(price_input); // adding the only child - price
+
+            const first_row = document.createElement("tr"); // create row - first row of subprodcuts, actually
+                first_row.appendChild(label_td); // append to row the column of label
+                first_row.appendChild(price_td); // append to row the column of price
+
+            const table = createNewEmptyTable(); // create empty table
+                table.appendChild(first_row); // append the first subprodcut row
+
+            return table;
+        }
+        function createNewFilledTable(subproducts)  // creates new table, fill it with subproducts and returns Node object of created table
+        {
+            const table = createNewEmptyTable();    // create new sub product table
+                table.appendChild(createOneFilledSubproductRowInput(subproducts[0])); // append first element, MUST be in every product
+                for(let i = 1; i < subproducts.length; i++)
+                {
+                    const new_row = createOneFilledSubproductRowInput(subproducts[i]); // for every subproduct creates a new row and fills it
+                        new_row.appendChild(tdCreateDeleteButton());    // append to created row the delete button
+                    
+                    table.appendChild(new_row); // append the created row to table
+                }
+
+            return table;
+        }
+        
+        function createOneFilledSubproductRowInput(subproduct) // creates the subprodcut row for edit the subproduct properties and returns the row Node object
+        {
+            const label_input = document.createElement("input");    // create the label input
+                label_input.type = "text";  // set its type to text, obviously
+                label_input.name = "subproduct-label";  // set the name as must be
+                label_input.value = subproduct.label;   // set the value of input with label of subproduct
+
+            const price_input = document.createElement("input");  // create the price input
+                price_input.type = "number";    // set its type to number, price ofk
+                price_input.name = "subproduct-price";  // set the name as must be
+                price_input.value = subproduct.price;   // set the price of input with subproduct price
+
+            const label_td = document.createElement("td"); // create the label column
+                label_td.appendChild(label_input);  // wrap label input into column
+            
+            const price_td = document.createElement("td"); // create price column
+                price_td.appendChild(price_input);  // wrap price input into column
+
+            const new_row = document.createElement("tr"); // create a row for columns
+                new_row.appendChild(label_td);  // add label column
+                new_row.appendChild(price_td);  // add price column
+
+            return new_row;
+        }
+        function createOneFilledSubproductRowRead(subproduct) // creates a row of subprodcut values available only to read, then return the new row Node object
+        {
+            const label_td = document.createElement("td"); // create label column
+                label_td.innerText = subproduct.label; // set the text of label with subproduct label
+            
+            const price_td = document.createElement("td"); // create price column
+                price_td.innerText = subproduct.price; // set the price of label with subproduct price; note that price is text
+
+            const new_row = document.createElement("tr");   // create the row of columns
+                new_row.appendChild(label_td);  // add label text column
+                new_row.appendChild(price_td);  // add price text column
+
+            return new_row;
+        }
+        function createOneEmptySubproductRow()  // create simply one row for input subprodcut data, then returns the row Node object
+        {
+            const label_input = document.createElement("input");  // create the label input
+                label_input.type = "text";  // set its type to text, obviously
+                label_input.name = "subproduct-label";  // set the name as must be
+
+            const price_input = document.createElement("input");  // create the price input
+                price_input.type = "number";    // set its type to number, price ofk
+                price_input.name = "subproduct-price";  // set the name as must be
+
+            const label_td = document.createElement("td");    // create the label column
+                label_td.appendChild(label_input);  // wrap label input into column
+            
+            const price_td = document.createElement("td");    // create price column
+                price_td.appendChild(price_input);  // wrap price input into column
+
+            const new_row = document.createElement("tr");   // create the row of columns
+                new_row.appendChild(label_td);  // add label text column
+                new_row.appendChild(price_td);  // add price text column
+
+            return new_row;
+        }
+
+        function addSubProduct(event)   // function to add new empty subproduct
+        {
+            const new_row = createOneEmptySubproductRow();  // make new row
+                new_row.appendChild(tdCreateDeleteButton());    // add the delete button to created row
+
+            const table = event.target.parentNode.parentNode.parentNode;   // get the table Node
+                table.appendChild(new_row); // add the createed row to table
+        }
+        function deleteSubProduct(event)    // function that deletes the subproduct, no matter if it filled or not
+        {
+            const el = event.target;  // get the button that was pressed
+            const td = el.parentNode; // get the column of pressed button
+            const tr = td.parentNode; // get the row of pressed button; in this row will be label and price inputs
+            tr.remove();    // remove row of where was pressed button with row's content
+        }
+        
+        function tdCreateButton(innerText, onclick) // abstract function that creates a button and wraps it into column, return the button column Node object
+        {
+            const button = document.createElement("button");  // create the button
+                button.type = "button"; // set its type to button
+                button.innerText = innerText;   // set the given text
+                button.onclick = onclick;   // set the callback on click with given method
+
+            const button_td = document.createElement("td"); // create a column
+                button_td.appendChild(button);  // wrap button in column
+
+            return button_td;
+        }
+        function tdCreateDeleteButton() { return tdCreateButton("-", deleteSubProduct); }   // creates delete button; returns buttons column Node object
+        function tdCreateAddButton() { return tdCreateButton("Добавить товар", addSubProduct); }    // creates add button; returns buttons column Node object
+
+        function parseSubproducts(table, rawSubs)   // function that parses the subproducts info and fills the given table
+        { 
+            const subproducts = JSON.parse(rawSubs);    // unJSON the subproducts
+            for(let i = 0; i < subproducts.length; i++)
+                table.appendChild(createOneFilledSubproductRowRead(subproducts[i])); // create row with filling the input fields and then append them to given table
+        }
+        function attachPhoto(img, subs, is_loaded_to_bot, photo_id, TOKEN)  // attach photo to preview img tag of each row in origin table
+        {
+            const table = img.parentNode.parentNode.querySelector('[id="subproducts-list"]'); // get the table itself
+            parseSubproducts(table, subs); // parse the subpriducts and add them to table of subrpoducts
+
+            img.onerror = null; // clear the onerror function of this image
+            if(is_loaded_to_bot == '0') // if our photo was not loaded to bot, just set src="" and not to try load photo
+            {
+                img.src = "";
+                return;
+            }
+
+            const request_body = `https://api.telegram.org/bot${TOKEN}/getFile?file_id=${photo_id}`; // create the request to bot to find a path to photo
+            const request = new Request(request_body, {method: 'GET'}); // request itself
+            fetch(request
+            ).then(function(responce) 
+                { return responce.json(); }
+            ).then(function(data)
+            {
+                const image_url = `https://api.telegram.org/file/bot${TOKEN}/${data.result.file_path}`; // make photo url
+                img.src = image_url;    // attach photo url to img source
+            });   
+        }
+        function handleFileSelect(event) // function that triggers then we select new photo; not my func, may be mistakes in explanation
+        {
+            const row = event.target.parentNode.parentNode;  // get the row of where the upload photo button was pressed
+            const img_view = row.querySelector('[id="product-image"]');   // get the img tag for showing image
+
+            const file = event.target.files;  // get the file list that were selected by user
+            const f = file[0];     // get the first file
+            if (!f.type.match('image.*'))   // if the user tricked us and selected not one of the permitted image file formats
+                alert("Пожалуйста, выберите файл изображения");
+            if(!f.size > 2097152) // 2 MB in bytes
+                alert("Пожалуйста, выберите файл размером меньше 2 МБ")
+            const reader = new FileReader();    // create file reader
+            reader.onload = (function(theFile)  // when file is uploaded
+            {
+                return function(e)
+                {
+                    img_view.src = e.target.result; // set the image preview img tag with this file uri
+                };
+            })(f);
+            reader.readAsDataURL(f); // start uploading file
+        }
+        function hideFrame() // function that hides the frame
+        {
+            document.getElementById("product-frame").style = "display: none;"; // hide frame
+            document.getElementById("products-table").style = "display: block;"; // set table visible
+            document.getElementById("product-adding-button").style = "display: block"; // set adding product button to visible
+
+            document.getElementById("subproduct-list-place").textContent = "";  // erase the table of subproducts
+            document.getElementById("product-image").src = "";  // clear the img for preview
+            document.getElementById("product-form").reset();    // clear the form
+        }
+    </script>
+
+    <body>
+        <form action="/admin/logout" method="POST"><input type="submit" value="Выйти"/></form><br/>
+        {% if bot_running == True %}
+            <form action="/admin/bot_actions/stop" method="POST"><input type="submit" value="Остановить бота"/></form><br/>
+        {% else %}
+            <form action="/admin/bot_actions/start" method="POST"><input type="submit" value="Запустить бота"/></form><br/>
+        {% endif %}
+        <form action="/admin/bot_actions/update_shop" method="POST"><input type="submit" value="Обновить магазин"/></form><br/>
+        <button type="button" id="product-adding-button" onclick="startAdding(event);">Добавить продукт</button><br/>
+        <table id="products-table">
+            <tr>
+                <th>ID</th>
+                <th>Заголовок</th>
+                <th>Описание</th>
+                <th>Товары</th>
+                <th>Загружен</th>
+                <th>Предпросмотр</th>
+            </tr>
+            {% for product in products %}
+                <tr>
+                    <td id="product-id">{{product[0]}}</td>
+                    <td id="product-title" >{{product[1]}}</td>
+                    <td id="product-description" >{{product[2]}}</td>
+                    <td>
+                        <table id="subproducts-list">
+                            <tr>
+                                <th>Название</th>
+                                <th>Цена</th>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>{{"Да" if product[5] == 1 else "Нет"}}</td>
+                    <td><img id="product-photo" alt="Возможно, ещё не загружено" height=64px width="64px" src onerror="attachPhoto(this, '{{product[3]}}', '{{product[5]}}', '{{product[4]}}', '{{TOKEN}}');" /></td>
+                    <td><button type="button" onclick="startEditing(event, '{{product[3]}}');" >Редактировать</button></td>
+                    <td><button type="button" onclick="sendDelete(event)">Удалить</button></td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <div id="product-frame" style="display: none;">
+            <button type="button" onclick='hideFrame()'>Отмена</button><br/><br/>
+            <label id="message-info"></label><br/>
+            <form id="product-form" method="POST" enctype="multipart/form-data">
+                
+                <label id="product-id">ID<br/><input type="text" name="product-id" readonly /></label><br/><br/>
+
+                <label for="product-title">Заголовок</label><br/>
+                <input type="text" name="product-title" /><br/><br/>
+
+                <label for="product-description">Описание</label><br/>
+                <textarea type="text" name="product-description">Текст описания</textarea><br/><br/>
+    
+                <label for="product-file" >Загрузка изображения для товара</label><br/>
+                <input type="file" name="product-file" onchange="handleFileSelect(event)" accept=".jpg, .png, .jpeg" /><br/><br/>
+                <label>Предпросмотр</label><br/>
+                <img id="product-image" height=128px width="128px" /><br/><br/>
+
+                <div id="subproduct-list-place"></div><br/><br/>
+    
+                <input value="Сохранить" type="submit" required />
+            </form>
+        </div>
+    </body>
+</html>
